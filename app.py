@@ -241,6 +241,7 @@ def active_case() -> dict:
 def calculate_metrics() -> dict:
     cases_received = len(STATE["cases"])
     root_causes_identified = sum(1 for case_data in STATE["cases"] if case_data.get("root_cause"))
+    knowledge_identified = len(STATE["learning_library"])
     actions_generated = sum(1 for action in STATE["actions"] if action.get("title"))
     implemented_improvements = sum(1 for action in STATE["actions"] if action.get("implemented"))
     problems_prevented = sum(1 for case_data in STATE["cases"] if case_data.get("prevented"))
@@ -286,6 +287,7 @@ def calculate_metrics() -> dict:
     return {
         "cases_received": cases_received,
         "root_causes_identified": root_causes_identified,
+        "knowledge_identified": knowledge_identified,
         "actions_generated": actions_generated,
         "implemented_improvements": implemented_improvements,
         "problems_prevented": problems_prevented,
@@ -580,6 +582,7 @@ def api_metrics():
             "active_case": active_case(),
             "cause_distribution": metrics["cause_distribution"],
             "learning_library": STATE["learning_library"],
+            "knowledge_identified": metrics["knowledge_identified"],
             "recommendations": metrics["recommendations"],
         }
     )

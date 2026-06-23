@@ -4,6 +4,10 @@ const appState = {
   activeCase: null,
   metrics: null,
   chart: null,
+  causeDistribution: [],
+  learningEntries: [],
+  recommendations: [],
+  activeStep: 1,
 };
 
 const dom = {};
@@ -27,13 +31,24 @@ document.addEventListener("DOMContentLoaded", () => {
   dom.iaoLabel = document.getElementById("iaoLabel");
   dom.kpiReceived = document.getElementById("kpiReceived");
   dom.kpiRootCauses = document.getElementById("kpiRootCauses");
+  dom.kpiKnowledge = document.getElementById("kpiKnowledge");
   dom.kpiActions = document.getElementById("kpiActions");
   dom.kpiImplemented = document.getElementById("kpiImplemented");
   dom.kpiPrevented = document.getElementById("kpiPrevented");
   dom.refreshBtn = document.getElementById("refreshBtn");
+  dom.chartInsight = document.getElementById("chartInsight");
+  dom.actionImpactPreview = document.getElementById("actionImpactPreview");
+  dom.actionStatusLabel = document.getElementById("actionStatusLabel");
+  dom.actionLeaderPreview = document.getElementById("actionLeaderPreview");
+  dom.actionDueDatePreview = document.getElementById("actionDueDatePreview");
+  dom.stepButtons = [...document.querySelectorAll("[data-step-target]")];
+  dom.stepPanes = [...document.querySelectorAll("[data-step-pane]")];
+  dom.stepWorkspace = document.querySelector(".step-workspace");
   dom.toast = document.getElementById("toast");
 
   bindEvents();
+  bindStepNavigation();
+  setActiveStep(getInitialStep(), { updateHash: false });
   refreshDashboard();
 });
 
@@ -43,7 +58,7 @@ function bindEvents() {
     appState.activeCase = appState.cases.find((item) => item.id === appState.activeCaseId) || appState.cases[0] || null;
     renderActiveCase();
     renderWorkflow();
-    renderGauge();
+    renderMetrics();
   });
 
   dom.refreshBtn.addEventListener("click", () => refreshDashboard(true));
@@ -51,6 +66,56 @@ function bindEvents() {
   dom.caseCreateForm.addEventListener("submit", handleCaseCreate);
   dom.analysisForm.addEventListener("submit", handleAnalysisSave);
   dom.actionForm.addEventListener("submit", handleActionSave);
+  dom.actionForm.addEventListener("input", () => renderActionPreview(appState.activeCase));
+}
+
+function bindStepNavigation() {
+  dom.stepButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetStep = Number(button.dataset.stepTarget || 1);
+      setActiveStep(targetStep, { updateHash: true, scrollToWorkspace: true });
+    });
+  });
+
+  window.addEventListener("hashchange", () => {
+    setActiveStep(getInitialStep(), { updateHash: false });
+  });
+}
+
+function getInitialStep() {
+  const match = window.location.hash.match(/step-(\d+)/i);
+  const step = Number(match?.[1] || 1);
+  return Number.isFinite(step) && step >= 1 && step <= 7 ? step : 1;
+}
+
+function setActiveStep(step, options = {}) {
+  appState.activeStep = Number(step) || 1;
+  renderActiveStep();
+
+  if (options.updateHash) {
+    window.history.replaceState(null, "", `#step-${appState.activeStep}`);
+  }
+
+  if (options.scrollToWorkspace) {
+    const targetPane = dom.stepPanes.find((pane) => Number(pane.dataset.stepPane) === appState.activeStep);
+    if (targetPane) {
+      targetPane.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+}
+
+function renderActiveStep() {
+  dom.stepButtons.forEach((button) => {
+    const isActive = Number(button.dataset.stepTarget) === appState.activeStep;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+    button.setAttribute("aria-current", isActive ? "true" : "false");
+  });
+
+  dom.stepPanes.forEach((pane) => {
+    const isActive = Number(pane.dataset.stepPane) === appState.activeStep;
+    pane.classList.toggle("is-focused", isActive);
+  });
 }
 
 async function refreshDashboard(showToast = false) {
@@ -61,14 +126,19 @@ async function refreshDashboard(showToast = false) {
     appState.activeCase = casesPayload.active_case || appState.cases[0] || null;
     appState.workflow = casesPayload.workflow || [];
     appState.metrics = metricsPayload.metrics || null;
+    appState.causeDistribution = metricsPayload.cause_distribution || [];
+    appState.learningEntries = metricsPayload.learning_library || [];
+    appState.recommendations = metricsPayload.recommendations || [];
 
     renderCaseSelector();
     renderActiveCase();
     renderWorkflow();
     renderMetrics();
-    renderChart(metricsPayload.cause_distribution || []);
-    renderLearningLibrary(metricsPayload.learning_library || []);
-    renderRecommendations(metricsPayload.recommendations || []);
+    renderChart(appState.causeDistribution);
+    renderLearningLibrary(appState.learningEntries);
+    renderRecommendations(appState.recommendations);
+    renderActiveStep();
+    renderActionPreview(appState.activeCase);
     if (showToast) {
       showToastMessage("Tablero actualizado con la informacion mas reciente.");
     }
@@ -179,21 +249,31 @@ function renderActiveCase() {
 
   dom.caseStatusPill.textContent = caseData.status || "En Analisis";
   dom.caseSummary.innerHTML = `
-    <div class="summary-card">
-      <span>Caso activo</span>
-      <strong>#${caseData.id}</strong>
+    <div class="case-summary__main">
+      <div class="case-summary__title-row">
+        <div>
+          <span>Caso activo</span>
+          <strong>#${caseData.id}</strong>
+        </div>
+        <div class="case-summary__badge">${escapeHtml(caseData.status || "En Analisis")}</div>
+      </div>
+      <ul class="case-summary__meta">
+        <li><span>Fecha de registro</span><strong>${formatDateLabel(caseData.created_at)}</strong></li>
+        <li><span>Usuario</span><strong>${escapeHtml(caseData.user)}</strong></li>
+        <li><span>Categoria</span><strong>${escapeHtml(caseData.category)}</strong></li>
+        <li><span>Subcategoria</span><strong>${escapeHtml(caseData.subcategory)}</strong></li>
+        <li><span>Canal</span><strong>${escapeHtml(caseData.channel)}</strong></li>
+        <li><span>Descripcion</span><strong>${escapeHtml(caseData.description)}</strong></li>
+      </ul>
     </div>
-    <div class="summary-card">
-      <span>Descripcion</span>
-      <strong>${escapeHtml(caseData.description)}</strong>
-    </div>
-    <div class="summary-card">
-      <span>Usuario / Canal</span>
-      <strong>${escapeHtml(caseData.user)} · ${escapeHtml(caseData.channel)}</strong>
-    </div>
-    <div class="summary-card">
-      <span>Tipificacion</span>
-      <strong>${escapeHtml(caseData.category)} / ${escapeHtml(caseData.subcategory)}</strong>
+    <div class="case-summary__aside">
+      <div class="case-summary__status">
+        <span>Estado del caso</span>
+        <strong>${escapeHtml(caseData.status || "En Analisis")}</strong>
+      </div>
+      <div class="case-summary__info"><span>Responsable</span><strong>${escapeHtml(caseData.action_leader || "Maria Gomez")}</strong></div>
+      <div class="case-summary__info"><span>Prioridad</span><strong>${escapeHtml(caseData.priority)}</strong></div>
+      <div class="case-summary__info"><span>Origen</span><strong>${escapeHtml(caseData.channel)}</strong></div>
     </div>
   `;
 
@@ -217,6 +297,8 @@ function renderActiveCase() {
   document.getElementById("actionPrevention").value = caseData.prevention || "";
   document.getElementById("actionImplemented").checked = Boolean(caseData.implemented);
   document.getElementById("actionPrevented").checked = Boolean(caseData.prevented);
+
+  renderActionPreview(caseData);
 }
 
 function renderWorkflow() {
@@ -246,6 +328,7 @@ function renderMetrics() {
   const metrics = appState.metrics;
   dom.kpiReceived.textContent = metrics.cases_received ?? 0;
   dom.kpiRootCauses.textContent = metrics.root_causes_identified ?? 0;
+  dom.kpiKnowledge.textContent = metrics.knowledge_identified ?? appState.learningEntries.length ?? 0;
   dom.kpiActions.textContent = metrics.actions_generated ?? 0;
   dom.kpiImplemented.textContent = metrics.implemented_improvements ?? 0;
   dom.kpiPrevented.textContent = metrics.problems_prevented ?? 0;
@@ -268,57 +351,54 @@ function renderChart(causeDistribution) {
     return;
   }
 
+  appState.causeDistribution = causeDistribution;
   const labels = causeDistribution.map((item) => item.label);
   const values = causeDistribution.map((item) => item.value);
-  const colors = ["#16a36d", "#0b2f6f", "#f0b429"];
+  const colors = ["#4caf50", "#0b2f6f", "#a855f7"];
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const topBucket = causeDistribution.reduce((top, item) => (item.value > (top?.value || 0) ? item : top), null);
+
+  if (dom.chartInsight) {
+    dom.chartInsight.textContent = topBucket ? `La causa mas recurrente es ${topBucket.label} con ${topBucket.value} casos sobre ${total || 0}.` : "Aun no hay suficientes datos para calcular la recurrencia.";
+  }
+
+  const chartCenterValue = document.getElementById("chartCenterValue");
+  if (chartCenterValue) {
+    chartCenterValue.textContent = String(total || 0);
+  }
 
   if (appState.chart) {
     appState.chart.destroy();
   }
 
   appState.chart = new Chart(dom.similarCasesChart, {
-    type: "bar",
+    type: "doughnut",
     data: {
       labels,
       datasets: [
         {
-          label: "Recurrencia",
+          label: "Casos similares",
           data: values,
-          borderWidth: 0,
-          borderRadius: 12,
           backgroundColor: colors,
+          borderWidth: 0,
+          hoverOffset: 4,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      cutout: "68%",
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label(context) {
-              return ` ${context.raw} casos`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          grid: { display: false },
-          ticks: { color: "#5c6c82", font: { weight: "700" } },
-        },
-        y: {
-          beginAtZero: true,
-          ticks: { stepSize: 1, color: "#5c6c82" },
-          grid: { color: "rgba(15, 37, 68, 0.08)" },
-        },
+        tooltip: { callbacks: { label(context) { return ` ${context.label}: ${context.raw} casos`; } } },
       },
     },
   });
 }
 
 function renderLearningLibrary(entries) {
+  appState.learningEntries = entries;
   dom.learningLibraryBody.innerHTML = entries
     .map(
       (entry) => `
@@ -334,13 +414,51 @@ function renderLearningLibrary(entries) {
 }
 
 function renderRecommendations(recommendations) {
+  appState.recommendations = recommendations;
   dom.recommendationsList.innerHTML = recommendations
     .map((item) => `<li>${escapeHtml(item)}</li>`)
     .join("");
 }
 
+function renderActionPreview(caseData) {
+  const activeCase = caseData || appState.activeCase || {};
+  const impactValue = Number(document.getElementById("actionImpact")?.value || activeCase.expected_impact || 0);
+  const leaderValue = document.getElementById("actionLeader")?.value?.trim() || activeCase.action_leader || "Sin asignar";
+  const dueDateValue = document.getElementById("actionDueDate")?.value || activeCase.action_due_date || "";
+
+  if (dom.actionImpactPreview) {
+    dom.actionImpactPreview.textContent = `${impactValue.toFixed(0)}%`;
+  }
+  if (dom.actionStatusLabel) {
+    dom.actionStatusLabel.textContent = activeCase.prevented ? "Prevencion activa" : activeCase.implemented ? "Accion implementada" : activeCase.status || "En Analisis";
+  }
+  if (dom.actionLeaderPreview) {
+    dom.actionLeaderPreview.textContent = leaderValue;
+  }
+  if (dom.actionDueDatePreview) {
+    dom.actionDueDatePreview.textContent = formatDateLabel(dueDateValue || activeCase.action_due_date);
+  }
+}
+
 function mapValueToAngle(value) {
   return -90 + (Math.max(0, Math.min(100, value)) / 100) * 180;
+}
+
+function formatDateLabel(value) {
+  if (!value) {
+    return "--/--/----";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
 }
 
 async function fetchJson(url, options = {}) {
