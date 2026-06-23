@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CONFORMIA 360 - Ecosistema de aprendizaje inteligente para garantias de conformidad.">
+  <title>{{ app_title }} | Prototipo Funcional</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</head>
+<body data-logo-url="{{ brand_logo_url }}">
+  <div class="page-shell">
+    <header class="site-header panel panel--hero">
+      <div class="hero-brand">
+        <img class="brand-logo brand-logo--hero" src="{{ brand_logo_url }}" alt="CONFORMIA 360">
+        <div>
+          <p class="eyebrow">MVP operativo</p>
+          <h1>CONFORMIA 360</h1>
+          <p class="hero-copy">Ecosistema de aprendizaje inteligente para transformar cada inconformidad en mejora preventiva medible.</p>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button type="button" class="btn btn--ghost" id="refreshBtn">Actualizar tablero</button>
+        <a class="btn btn--primary" href="#dashboardGrid">Ir al flujo</a>
+      </div>
+    </header>
+
+    <section class="kpi-strip" aria-label="Indicadores principales">
+      <article class="kpi-card kpi-card--accent">
+        <img class="brand-logo brand-logo--watermark" src="{{ brand_logo_url }}" alt="">
+        <span>Casos Recibidos</span>
+        <strong id="kpiReceived">0</strong>
+        <small>Entrada total del ecosistema</small>
+      </article>
+      <article class="kpi-card">
+        <span>Causas Raiz Identificadas</span>
+        <strong id="kpiRootCauses">0</strong>
+        <small>Hallazgos convertidos en aprendizaje</small>
+      </article>
+      <article class="kpi-card">
+        <span>Acciones de Mejora Generadas</span>
+        <strong id="kpiActions">0</strong>
+        <small>Propuestas con lider y fecha</small>
+      </article>
+      <article class="kpi-card kpi-card--good">
+        <span>Mejoras Implementadas</span>
+        <strong id="kpiImplemented">0</strong>
+        <small>Acciones llevadas a ejecucion</small>
+      </article>
+      <article class="kpi-card kpi-card--warning">
+        <span>Problemas Prevenidos</span>
+        <strong id="kpiPrevented">0</strong>
+        <small>Reincidencias bloqueadas</small>
+      </article>
+    </section>
+
+    <main class="dashboard-grid" id="dashboardGrid">
+      <section class="panel panel--case">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 1 y 2</p>
+            <h2>Ingreso y resumen del caso</h2>
+          </div>
+          <img class="brand-logo brand-logo--badge" src="{{ brand_logo_url }}" alt="360">
+        </div>
+        <div class="panel__toolbar">
+          <label class="field field--compact">
+            <span>Caso activo</span>
+            <select id="caseSelector"></select>
+          </label>
+          <div class="status-pill" id="caseStatusPill">En Analisis</div>
+        </div>
+        <div class="case-summary" id="caseSummary"></div>
+
+        <form id="caseCreateForm" class="form-grid form-grid--case">
+          <label class="field">
+            <span>Usuario</span>
+            <input name="user" type="text" placeholder="Nombre de quien reporta">
+          </label>
+          <label class="field">
+            <span>Categoria</span>
+            <input name="category" type="text" placeholder="Operaciones, Compras, TI">
+          </label>
+          <label class="field">
+            <span>Subcategoria</span>
+            <input name="subcategory" type="text" placeholder="Inventario, Proveedores, Proceso">
+          </label>
+          <label class="field">
+            <span>Canal</span>
+            <select name="channel">
+              <option>Portal</option>
+              <option>Correo</option>
+              <option>App movil</option>
+              <option>Telefono</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Prioridad</span>
+            <select name="priority">
+              <option>Baja</option>
+              <option selected>Media</option>
+              <option>Alta</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Bucket de causa</span>
+            <select name="cause_bucket">
+              <option>Inventario</option>
+              <option>Proveedores</option>
+              <option selected>Proceso Interno</option>
+            </select>
+          </label>
+          <label class="field field--full">
+            <span>Descripcion del problema</span>
+            <textarea name="description" rows="3" placeholder="Describe la inconformidad con contexto operativo"></textarea>
+          </label>
+          <div class="field field--full field--actions">
+            <button class="btn btn--primary" type="submit">Registrar inconformidad</button>
+            <p class="field__hint">El alta del caso abre el flujo y actualiza el tablero sin recargar la pagina.</p>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel--analysis">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 3 y 4</p>
+            <h2>Analisis de causa raiz y aprendizaje</h2>
+          </div>
+          <span class="mini-chip">5 Porques</span>
+        </div>
+        <p class="panel__subcopy">Cada respuesta alimenta la biblioteca de aprendizajes y deja trazabilidad para la prevencion.</p>
+        <form id="analysisForm" class="analysis-stack">
+          <div class="why-stack" id="whyStack"></div>
+          <label class="field">
+            <span>Causa raiz identificada</span>
+            <input id="rootCauseInput" name="root_cause" type="text" placeholder="Ej. Falta de alertas de inventario">
+          </label>
+          <label class="field">
+            <span>Aprendizaje documentado</span>
+            <textarea id="learningInput" name="learning" rows="3" placeholder="Que quedo aprendido y que debe estandarizarse"></textarea>
+          </label>
+          <div class="field field--full field--actions">
+            <button class="btn btn--primary" type="submit">Guardar analisis y aprendizaje</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel--chart">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 3</p>
+            <h2>Casos similares encontrados</h2>
+          </div>
+          <span class="mini-chip mini-chip--soft">Recurrencia por causa</span>
+        </div>
+        <div class="chart-shell">
+          <canvas id="similarCasesChart" aria-label="Distribucion de recurrencia por causa"></canvas>
+        </div>
+      </section>
+
+      <section class="panel panel--action">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 5 y 6</p>
+            <h2>Accion de mejora y prevencion</h2>
+          </div>
+          <img class="brand-logo brand-logo--assistant" src="{{ brand_logo_url }}" alt="MIA 360">
+        </div>
+        <p class="panel__subcopy">La accion propuesta puede marcarse como implementada y preventiva para impactar el IAO de inmediato.</p>
+        <form id="actionForm" class="analysis-stack">
+          <label class="field">
+            <span>Accion propuesta</span>
+            <input id="actionTitle" name="title" type="text" placeholder="Ej. Alertas automaticas de stock minimo">
+          </label>
+          <label class="field">
+            <span>Lider tecnico</span>
+            <input id="actionLeader" name="leader" type="text" placeholder="Responsable de la ejecucion">
+          </label>
+          <div class="split-grid">
+            <label class="field">
+              <span>Fecha limite</span>
+              <input id="actionDueDate" name="due_date" type="date">
+            </label>
+            <label class="field">
+              <span>Impacto estimado (%)</span>
+              <input id="actionImpact" name="expected_impact" type="number" min="0" max="100" step="1" placeholder="42">
+            </label>
+          </div>
+          <label class="field">
+            <span>Hitos de ejecucion</span>
+            <textarea id="actionMilestones" name="milestones" rows="3" placeholder="Separar cada hito con punto y coma"></textarea>
+          </label>
+          <label class="checkbox-row">
+            <input id="actionImplemented" name="implemented" type="checkbox" checked>
+            <span>Marcar como implementada al guardar</span>
+          </label>
+          <label class="checkbox-row">
+            <input id="actionPrevented" name="prevented" type="checkbox" checked>
+            <span>Activar prevencion de reincidencia</span>
+          </label>
+          <label class="field">
+            <span>Nota preventiva</span>
+            <input id="actionPrevention" name="prevention" type="text" placeholder="Descripcion del bloqueo o mitigacion">
+          </label>
+          <div class="field field--full field--actions">
+            <button class="btn btn--primary" type="submit">Guardar accion y prevencion</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel--library">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 4</p>
+            <h2>Biblioteca de aprendizajes</h2>
+          </div>
+          <span class="mini-chip">Historico indexado</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Problema recurrente</th>
+                <th>Causa raiz</th>
+                <th>Accion aplicada</th>
+                <th>Impacto (%)</th>
+              </tr>
+            </thead>
+            <tbody id="learningLibraryBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel panel--gauge">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 7</p>
+            <h2>Indicador IAO</h2>
+          </div>
+          <span class="mini-chip mini-chip--soft" id="iaoLabel">Estado intermedio</span>
+        </div>
+        <div class="gauge-shell">
+          <svg class="gauge" viewBox="0 0 200 120" aria-hidden="true">
+            <path class="gauge__track" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100"></path>
+            <path class="gauge__fill" id="iaoGaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100"></path>
+            <g class="gauge__needle" id="iaoGaugeNeedle">
+              <line x1="100" y1="100" x2="100" y2="34"></line>
+              <circle cx="100" cy="100" r="6"></circle>
+            </g>
+          </svg>
+          <div class="gauge-copy">
+            <strong id="iaoValue">0%</strong>
+            <p id="iaoNarrative">Cargando calculo del indice de aprendizaje.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section class="bottom-grid">
+      <article class="panel panel--flow">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Flujo visual</p>
+            <h2>Stepper de 7 pasos</h2>
+          </div>
+          <span class="mini-chip">Transicion continua</span>
+        </div>
+        <div class="stepper" id="workflowStepper"></div>
+      </article>
+
+      <article class="panel panel--assistant">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Asistente IA</p>
+            <h2>Recomendaciones simuladas</h2>
+          </div>
+          <img class="brand-logo brand-logo--assistant" src="{{ brand_logo_url }}" alt="MIA 360">
+        </div>
+        <ul class="insight-list" id="recommendationsList"></ul>
+      </article>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html><!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CONFORMIA 360 - Ecosistema de aprendizaje inteligente para garantias de conformidad.">
+  <title>{{ app_title }} | Prototipo Funcional</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+</head>
+<body data-logo-url="{{ brand_logo_url }}">
+  <div class="page-shell">
+    <header class="site-header panel panel--hero">
+      <div class="hero-brand">
+        <img class="brand-logo brand-logo--hero" src="{{ brand_logo_url }}" alt="CONFORMIA 360">
+        <div>
+          <p class="eyebrow">MVP operativo</p>
+          <h1>CONFORMIA 360</h1>
+          <p class="hero-copy">Ecosistema de aprendizaje inteligente para transformar cada inconformidad en mejora preventiva medible.</p>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <button type="button" class="btn btn--ghost" id="refreshBtn">Actualizar tablero</button>
+        <a class="btn btn--primary" href="#dashboardGrid">Ir al flujo</a>
+      </div>
+    </header>
+
+    <section class="kpi-strip" aria-label="Indicadores principales">
+      <article class="kpi-card kpi-card--accent">
+        <img class="brand-logo brand-logo--watermark" src="{{ brand_logo_url }}" alt="">
+        <span>Casos Recibidos</span>
+        <strong id="kpiReceived">0</strong>
+        <small>Entrada total del ecosistema</small>
+      </article>
+      <article class="kpi-card">
+        <span>Causas Raiz Identificadas</span>
+        <strong id="kpiRootCauses">0</strong>
+        <small>Hallazgos convertidos en aprendizaje</small>
+      </article>
+      <article class="kpi-card">
+        <span>Acciones de Mejora Generadas</span>
+        <strong id="kpiActions">0</strong>
+        <small>Propuestas con lider y fecha</small>
+      </article>
+      <article class="kpi-card kpi-card--good">
+        <span>Mejoras Implementadas</span>
+        <strong id="kpiImplemented">0</strong>
+        <small>Acciones llevadas a ejecucion</small>
+      </article>
+      <article class="kpi-card kpi-card--warning">
+        <span>Problemas Prevenidos</span>
+        <strong id="kpiPrevented">0</strong>
+        <small>Reincidencias bloqueadas</small>
+      </article>
+    </section>
+
+    <main class="dashboard-grid" id="dashboardGrid">
+      <section class="panel panel--case">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 1 y 2</p>
+            <h2>Ingreso y resumen del caso</h2>
+          </div>
+          <img class="brand-logo brand-logo--badge" src="{{ brand_logo_url }}" alt="360">
+        </div>
+        <div class="panel__toolbar">
+          <label class="field field--compact">
+            <span>Caso activo</span>
+            <select id="caseSelector"></select>
+          </label>
+          <div class="status-pill" id="caseStatusPill">En Analisis</div>
+        </div>
+        <div class="case-summary" id="caseSummary"></div>
+
+        <form id="caseCreateForm" class="form-grid form-grid--case">
+          <label class="field">
+            <span>Usuario</span>
+            <input name="user" type="text" placeholder="Nombre de quien reporta">
+          </label>
+          <label class="field">
+            <span>Categoria</span>
+            <input name="category" type="text" placeholder="Operaciones, Compras, TI">
+          </label>
+          <label class="field">
+            <span>Subcategoria</span>
+            <input name="subcategory" type="text" placeholder="Inventario, Proveedores, Proceso">
+          </label>
+          <label class="field">
+            <span>Canal</span>
+            <select name="channel">
+              <option>Portal</option>
+              <option>Correo</option>
+              <option>App movil</option>
+              <option>Telefono</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Prioridad</span>
+            <select name="priority">
+              <option>Baja</option>
+              <option selected>Media</option>
+              <option>Alta</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Bucket de causa</span>
+            <select name="cause_bucket">
+              <option>Inventario</option>
+              <option>Proveedores</option>
+              <option selected>Proceso Interno</option>
+            </select>
+          </label>
+          <label class="field field--full">
+            <span>Descripcion del problema</span>
+            <textarea name="description" rows="3" placeholder="Describe la inconformidad con contexto operativo"></textarea>
+          </label>
+          <div class="field field--full field--actions">
+            <button class="btn btn--primary" type="submit">Registrar inconformidad</button>
+            <p class="field__hint">El alta del caso abre el flujo y actualiza el tablero sin recargar la pagina.</p>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel--analysis">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 3 y 4</p>
+            <h2>Analisis de causa raiz y aprendizaje</h2>
+          </div>
+          <span class="mini-chip">5 Porques</span>
+        </div>
+        <p class="panel__subcopy">Cada respuesta alimenta la biblioteca de aprendizajes y deja trazabilidad para la prevencion.</p>
+        <form id="analysisForm" class="analysis-stack">
+          <div class="why-stack" id="whyStack"></div>
+          <label class="field">
+            <span>Causa raiz identificada</span>
+            <input id="rootCauseInput" name="root_cause" type="text" placeholder="Ej. Falta de alertas de inventario">
+          </label>
+          <label class="field">
+            <span>Aprendizaje documentado</span>
+            <textarea id="learningInput" name="learning" rows="3" placeholder="Que quedo aprendido y que debe estandarizarse"></textarea>
+          </label>
+          <div class="field field--full field--actions">
+            <button class="btn btn--primary" type="submit">Guardar analisis y aprendizaje</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel--chart">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 3</p>
+            <h2>Casos similares encontrados</h2>
+          </div>
+          <span class="mini-chip mini-chip--soft">Recurrencia por causa</span>
+        </div>
+        <div class="chart-shell">
+          <canvas id="similarCasesChart" aria-label="Distribucion de recurrencia por causa"></canvas>
+        </div>
+      </section>
+
+      <section class="panel panel--action">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 5 y 6</p>
+            <h2>Accion de mejora y prevencion</h2>
+          </div>
+          <img class="brand-logo brand-logo--assistant" src="{{ brand_logo_url }}" alt="MIA 360">
+        </div>
+        <p class="panel__subcopy">La accion propuesta puede marcarse como implementada y preventiva para impactar el IAO de inmediato.</p>
+        <form id="actionForm" class="analysis-stack">
+          <label class="field">
+            <span>Accion propuesta</span>
+            <input id="actionTitle" name="title" type="text" placeholder="Ej. Alertas automaticas de stock minimo">
+          </label>
+          <label class="field">
+            <span>Lider tecnico</span>
+            <input id="actionLeader" name="leader" type="text" placeholder="Responsable de la ejecucion">
+          </label>
+          <div class="split-grid">
+            <label class="field">
+              <span>Fecha limite</span>
+              <input id="actionDueDate" name="due_date" type="date">
+            </label>
+            <label class="field">
+              <span>Impacto estimado (%)</span>
+              <input id="actionImpact" name="expected_impact" type="number" min="0" max="100" step="1" placeholder="42">
+            </label>
+          </div>
+          <label class="field">
+            <span>Hitos de ejecucion</span>
+            <textarea id="actionMilestones" name="milestones" rows="3" placeholder="Separar cada hito con punto y coma"></textarea>
+          </label>
+          <label class="checkbox-row">
+            <input id="actionImplemented" name="implemented" type="checkbox" checked>
+            <span>Marcar como implementada al guardar</span>
+          </label>
+          <label class="checkbox-row">
+            <input id="actionPrevented" name="prevented" type="checkbox" checked>
+            <span>Activar prevencion de reincidencia</span>
+          </label>
+          <label class="field">
+            <span>Nota preventiva</span>
+            <input id="actionPrevention" name="prevention" type="text" placeholder="Descripcion del bloqueo o mitigacion">
+          </label>
+          <div class="field field--full field--actions">
+            <button class="btn btn--primary" type="submit">Guardar accion y prevencion</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel panel--library">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 4</p>
+            <h2>Biblioteca de aprendizajes</h2>
+          </div>
+          <span class="mini-chip">Historico indexado</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Problema recurrente</th>
+                <th>Causa raiz</th>
+                <th>Accion aplicada</th>
+                <th>Impacto (%)</th>
+              </tr>
+            </thead>
+            <tbody id="learningLibraryBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel panel--gauge">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Paso 7</p>
+            <h2>Indicador IAO</h2>
+          </div>
+          <span class="mini-chip mini-chip--soft" id="iaoLabel">Estado intermedio</span>
+        </div>
+        <div class="gauge-shell">
+          <svg class="gauge" viewBox="0 0 200 120" aria-hidden="true">
+            <path class="gauge__track" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100"></path>
+            <path class="gauge__fill" id="iaoGaugeFill" d="M 20 100 A 80 80 0 0 1 180 100" pathLength="100"></path>
+            <g class="gauge__needle" id="iaoGaugeNeedle">
+              <line x1="100" y1="100" x2="100" y2="34"></line>
+              <circle cx="100" cy="100" r="6"></circle>
+            </g>
+          </svg>
+          <div class="gauge-copy">
+            <strong id="iaoValue">0%</strong>
+            <p id="iaoNarrative">Cargando calculo del indice de aprendizaje.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <section class="bottom-grid">
+      <article class="panel panel--flow">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Flujo visual</p>
+            <h2>Stepper de 7 pasos</h2>
+          </div>
+          <span class="mini-chip">Transicion continua</span>
+        </div>
+        <div class="stepper" id="workflowStepper"></div>
+      </article>
+
+      <article class="panel panel--assistant">
+        <div class="panel__header">
+          <div>
+            <p class="panel__eyebrow">Asistente IA</p>
+            <h2>Recomendaciones simuladas</h2>
+          </div>
+          <img class="brand-logo brand-logo--assistant" src="{{ brand_logo_url }}" alt="MIA 360">
+        </div>
+        <ul class="insight-list" id="recommendationsList"></ul>
+      </article>
+    </section>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
